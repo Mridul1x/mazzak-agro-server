@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
-const User = require("../model/user.model");
+const User = require("../models/user.model");
+const { createToken } = require("../helpers/token.helper");
 
 const getAllUsers = async (req, res) => {
   try {
@@ -17,13 +18,20 @@ const registerUser = async (req, res) => {
     const existingUser = await User.findOne(query);
 
     if (existingUser) {
-      return res.status(409).json({ message: "User already exists" });
+      return res.status(200).json(existingUser);
     }
-
     const result = await User.create(user);
-    res.status(201).json(result);
+    const token = createToken(user._id);
+    // Set the token as an HTTP-only cookie
+    res.cookie("access_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Set secure flag for production
+      sameSite: "strict", // Prevent CSRF attacks
+      maxAge: 3600000, // 1 hour expiration
+    });
+    res.status(200).json({ result, token });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(400).json({ error: error.message });
   }
 };
 
