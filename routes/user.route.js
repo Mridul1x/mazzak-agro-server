@@ -9,7 +9,7 @@ const { isAuthenticated } = require("../middlewares/auth.middleware");
 const router = express.Router();
 
 router.get("/", getAllUsers);
-router.get("/:uid", isAuthenticated, getAnUser);
+router.get("/:uid", getAnUser);
 router.post("/", registerUser);
 
 module.exports = router;
