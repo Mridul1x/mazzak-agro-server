@@ -1,4 +1,3 @@
-;
 const User = require("../models/user.model");
 const { createToken } = require("../helpers/token.helper");
 const { default: mongoose } = require("mongoose");
@@ -6,6 +5,7 @@ const { default: mongoose } = require("mongoose");
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.find({}).sort({ createdAt: -1 });
+
     res.status(200).json(users);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -19,23 +19,16 @@ const registerUser = async (req, res) => {
     const existingUser = await User.findOne(query);
 
     if (existingUser) {
-      return res.status(200).json(existingUser);
+      const token = createToken(existingUser._id);
+      return res.status(200).json({ result: existingUser, token });
     }
     const result = await User.create(user);
-    const token = createToken(user._id);
-    // Set the token as an HTTP-only cookie
-    res.cookie("access_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Set secure flag for production
-      sameSite: "strict", // Prevent CSRF attacks
-      maxAge: 3600000, // 1 hour expiration
-    });
+    const token = createToken(result._id);
     res.status(200).json({ result, token });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
-
 const getAnUser = async (req, res) => {
   try {
     const { uid } = req.params;
@@ -49,10 +42,51 @@ const getAnUser = async (req, res) => {
       throw new Error("Unauthorized access.");
     }
 
-    const user = await User.findById(uid);
+    const user = await User.findById(uid).populate("orders").exec();
     res.status(200).json(user);
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+};
+const createUserWithOrder = async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const { orderId } = req.body;
+
+    const user = await User.findById(uid);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    user.orders.push(orderId);
+    await user.save();
+
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const getUserOrders = async (req, res) => {
+  try {
+    const { uid } = req.params;
+
+    const user = await User.findById(uid).populate({
+      path: "orders",
+      populate: {
+        path: "products.productId",
+        model: "Product",
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.status(200).json(user.orders);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -60,4 +94,6 @@ module.exports = {
   getAllUsers,
   getAnUser,
   registerUser,
+  createUserWithOrder,
+  getUserOrders,
 };

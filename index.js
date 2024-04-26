@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 /*Routes*/
 const userRoutes = require("./routes/user.route");
 const productRoutes = require("./routes/product.route");
+const checkoutRoutes = require("./routes/checkout.route");
 /*Express App*/
 const app = express();
 
@@ -18,6 +19,7 @@ app.get("/", (req, res) => {
 });
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/orders", checkoutRoutes);
 /*Variables*/
 const port = process.env.PORT || 8080;
 const uri = process.env.MONGO_URI;
