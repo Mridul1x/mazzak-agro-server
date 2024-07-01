@@ -29,6 +29,7 @@ const registerUser = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
+
 const getAnUser = async (req, res) => {
   try {
     const { uid } = req.params;
